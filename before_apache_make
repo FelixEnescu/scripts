@@ -1,0 +1,13 @@
+#!/bin/bash
+#symlink patch
+#Rack911 <steve@rack911.com>
+
+## Obtain Symlink Patch
+/usr/bin/wget -O harden-symlinks-22.patch http://layer1.rack911.com/harden-symlinks.patch
+
+## Update for 2.2.23
+sed  's/2.2.22/2.2.23/g' < harden-symlinks-22.patch > harden-symlinks.patch
+## Patch Source
+
+/usr/bin/patch -p1 < harden-symlinks.patch
+
