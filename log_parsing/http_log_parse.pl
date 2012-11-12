@@ -23,6 +23,7 @@ my $combined;
 my $apache;
 
 my %known_ips = (
+		'66.249.66.21'		=> 'Google Bot',
 		'66.249.66.97'		=> 'Google Bot',
 		'66.249.76.60'		=> 'Google Bot',
         '85.186.202.36'		=> 'Bunt HQ',
@@ -81,7 +82,7 @@ my $duration_factor;
 
 my ($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua);
 
-#my $re = qr!^([\d\.]+?) ([\w-]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0300\] "(.*?)" (\d*?) ([\d-]*?) "(.*?)" "(.*?)"$!;
+
 my $re;
 
 if ( defined $apache ) {
@@ -147,6 +148,7 @@ while( my $line = <$fin> )  {
 			$int_urisnotok_total_rq{$uri}->{hcode} = $hcode;
 			$int_urisnotok_total_rq{$uri}->{size} += ($size ne "-")?$size:0;
 			$int_urisnotok_total_rq{$uri}->{rqtime} += $rqtime;
+			$int_urisnotok_total_rq{$uri}->{ua} = $ref;
 		}
 		
 	} else {
@@ -251,7 +253,7 @@ sub print_report_by_rqtime {
 	my $file_tail = shift;
 	my $names = shift;
 	
-	my $categ = 'by_rqtime'
+	my $categ = 'bytime';
 	
 	print STDERR "Writting " . $out_file . "-$categ-$file_tail ... ";
 	open ($fout, ">:raw", $out_file . "-$categ-$file_tail") or die "Could not open $out_file $categ-$file_tail: $!";
@@ -285,7 +287,9 @@ sub print_report_by_rqtime {
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $hash_ref->{$crt_key}->{rqs} / $duration_factor;
 		
 		if ( $file_tail eq "IP" ) {
-			print $fout ", " . $int_ips_total_rq{$crt_key}->{ua} . "\n";
+			print $fout ", " . $hash_ref->{$crt_key}->{ua} . "\n";
+		} elsif ( $file_tail eq "Errors") {
+			print $fout ", " . $hash_ref->{$crt_key}->{hcode} . ", " . $hash_ref->{$crt_key}->{ua} . "\n";
 		} else {
 			print $fout "\n";
 		}
@@ -301,7 +305,7 @@ sub print_report_by_rq {
 	my $file_tail = shift;
 	my $names = shift;
 
-	my $categ = 'by_rq'
+	my $categ = 'byrq';
 	
 	print STDERR "Writting " . $out_file . "-$categ-$file_tail ... ";
 	open ($fout, ">:raw", $out_file . "-$categ-$file_tail") or die "Could not open $out_file $categ-$file_tail: $!";
@@ -335,7 +339,9 @@ sub print_report_by_rq {
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $hash_ref->{$crt_key}->{rqs} / $duration_factor;
 		
 		if ( $file_tail eq "IP" ) {
-			print $fout ", " . $int_ips_total_rq{$crt_key}->{ua} . "\n";
+			print $fout ", " . $hash_ref->{$crt_key}->{ua} . "\n";
+		} elsif ( $file_tail eq "Errors") {
+			print $fout ", " . $hash_ref->{$crt_key}->{hcode} . ", " . $hash_ref->{$crt_key}->{ua} . "\n";
 		} else {
 			print $fout "\n";
 		}
