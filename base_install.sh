@@ -22,6 +22,7 @@ working_dir='/root/qsol'
 
 #####################################################################
 
+packets='bind-utils wget'
 
 WGET='wget --no-verbose '
 
@@ -52,19 +53,21 @@ else
 	exit 127
 fi
 
-if which wget ; then
-	echo "wget found."
-else
-	$install_cmd wget
+# Get our plugins
+for pkt in $packets; do
+	if $install_cmd $pkt; then
+		echo "$pkt ok."
 
-	if which wget ; then
-		echo "wget installation ok."
-	else
-		echo "wget installation failed."
+	else 
+		echo "$pkt failed."
 		exit 127
 	fi
-fi
+done
 
+#########################################
+#
+# Special installs
+#
 if [ -x "/usr/sbin/crond" ]; then
 	echo "crond found."
 else

@@ -4,17 +4,22 @@
 #
 #	Written by [blueCat] <felix@enescu.name>
 #
-#	First cut the intereval of interest from file with cut_interval
 #
 
 use warnings;
 use strict;
+
+use Time::Local 'timelocal_nocheck'; 
+#use Time::Local 'timelocal'; 
 
 use Time::HiRes qw/ time /;
 my $start = time;
 
 use Getopt::Long;
 
+# Format YYYY-MM-DD HH:MM:SS
+my ( $int_start, $int_end );
+my ( $interval_start, $interval_end );
 my ( $in_file, $out_file );
 my $report_interval;
 my $source_ip;
@@ -22,23 +27,39 @@ my $nginx;
 my $combined;
 my $apache;
 
+my %mons = ('Jan'=>1,'Feb'=>2,'Mar'=>3,'Apr'=>4,'May'=>5,'Jun'=>6,'Jul'=>7,'Aug'=>8,'Sep'=>9,'Oct'=>10,'Nov'=>11,'Dec'=>12);
+
 my %known_ips = (
+		'65.55.213.70'		=> 'MSN Bot',
 		'66.249.66.21'		=> 'Google Bot',
 		'66.249.66.97'		=> 'Google Bot',
+		'66.249.76.24'		=> 'Google Bot Images',
 		'66.249.76.60'		=> 'Google Bot',
         '85.186.202.36'		=> 'Bunt HQ',
         '89.42.111.42'		=> 'citatepedia.ro',
         '89.149.12.231'		=> 'Elefant HQ',
         '89.238.194.86'		=> 'Icinga',
-		'94.177.67.99'		=> 'Himself!!!',
+		'94.177.67.99'		=> '!!! WWW Elefant !!!',
+		'94.177.67.102'		=> '!!! WWW Elefant !!!',
+		'94.177.67.105'		=> '!!! WWW Elefant !!!',
 		'131.253.27.53'		=> 'MSN Bot',
 		'131.253.27.108'	=> 'MSN Bot',
+		'157.55.32.86'		=> 'MSN Bot',
+		'157.55.32.152'		=> 'MSN Bot',
+		'157.55.34.35'		=> 'MSN Bot',
 		'157.56.95.138'		=> 'MSN Bot',
 		'178.154.202.250'	=> 'Yandex Bot',
+		
+# 003 Leech Section L_<offending count>_<index>_<last_date>
+		'83.246.0.122'		=> 'L_01_002_2012-11-12',
+		'86.105.183.131'	=> 'L_01_003_2012-11-12',
+		'92.55.144.27'		=> 'L_01_001_2012-11-12',
 	);
 
 
 GetOptions (
+			'start=s' => \$int_start,
+			'end=s' => \$int_end,
 			'in=s' => \$in_file,
 			'out=s' => \$out_file,
 			'report:i' => \$report_interval,
@@ -49,7 +70,7 @@ GetOptions (
 			);
 
 if ( ! defined  $out_file ) {
-	$out_file = $in_file . "out";
+	$out_file = $in_file . ".out";
 }
 
 my $err_file = $out_file . ".err";
@@ -60,6 +81,24 @@ if ( ! defined $report_interval ) {
 	$report_interval = 20000;
 }
 
+# 					Format YYYY-MM-DD HH:MM:SS
+if (defined $int_start ) {
+	if (  $int_start =~ /(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)/) {
+		#timelocal($sec,$min,$hour,$mday,$mon,$year);
+		$interval_start = timelocal_nocheck($6, $5, $4, $3, $2, $1);
+	} else {
+		die "Interval start incorect: $int_start (needed YYYY-MM-DD HH:MM:SS)";
+	}
+}
+# 					Format YYYY-MM-DD HH:MM:SS
+if (defined $int_end ) {
+	if ( $int_end =~ /(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)/) {
+		#timelocal($sec,$min,$hour,$mday,$mon,$year);
+		$interval_end = timelocal_nocheck($6, $5, $4, $3, $2, $1);
+	} else {
+		die "Interval end incorect: $int_end (needed YYYY-MM-DD HH:MM:SS)";
+	}
+}
 
 my ($fin, $fout, $ferr);
 open ($fin, "<:raw", $in_file) or die "Could not open input $in_file: $!";
@@ -80,7 +119,7 @@ my $total_size = 0;
 my $total_time = 0;
 my $duration_factor;
 
-my ($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua);
+my ($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua, $xfor);
 
 
 my $re;
@@ -93,7 +132,9 @@ if ( defined $apache ) {
 	
 } elsif ( defined $nginx ) {
 	# nginx ele_ext
-	$re = qr!^([\d\.]+?) ([\w-]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d*?) ([\d-]*?) "(.*?)" "(.*?)"$!;
+	#217.212.230.11 - [10/Nov/2012:03:23:17 +0200] "GET /images/79/198079/filme-de-colectie-anii-60_1_taburi.jpg HTTP/1.1" 200 7662 0.101 . - "http://www.elefant.ro/" "Opera/9.80 (Windows NT 5.1) Presto/2.12.388 Version/12.10"
+
+	$re = qr!^([\d\.]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d+?) (\d+?) ([\d\.]+?) ([\.p]) (-) "(.*?)" "(.*?)" "(.*?)$!;
 	$duration_factor = 1;
 } elsif ( defined $combined ) {
 	$re = qr!^([\d\.]+?) ([\w-]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d*?) ([\d-]*?) "(.*?)" "(.*?)"$!;
@@ -101,13 +142,14 @@ if ( defined $apache ) {
 	die "No log format specified";
 }
 
+
 while( my $line = <$fin> )  {   
 	if ( $line =~ $re ) {
 		if ( defined $apache ) {
 			($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);
 			#print "$ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua\n";
 		} elsif ( defined $nginx ) {
-			($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);
+			($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua, $xfor) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);
 			#print "$ip, $unk, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $ref, $ua\n";
 		} elsif ( defined $combined ) {
 			($ip, $user, $day, $month, $year, $hour, $min, $sec, $method, $uri, $proto, $hcode, $size, $rqtime, $keepalive, $kaidx, $ref, $ua) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);
@@ -116,6 +158,12 @@ while( my $line = <$fin> )  {
 		
 		if ( defined $source_ip && $source_ip ne $ip ) {
 			next;
+		}
+		if (defined $interval_start || defined $interval_end) {
+			my $rq_time;
+			$rq_time = timelocal_nocheck($sec, $min, $hour, $day, $mons{$month}, $year);
+			next if (defined $interval_start &&  $rq_time < $interval_start);
+			last if (defined $interval_end &&  $interval_end < $rq_time);
 		}
 		
 		$total_rq += 1;		
@@ -130,7 +178,6 @@ while( my $line = <$fin> )  {
 		$int_ips_total_rq{$ip}->{size} += ($size ne "-")?$size:0;
 		$int_ips_total_rq{$ip}->{ua} = $ua;
 		
-
 		$int_uris_total_rq{$uri}->{rqs} += 1;
 		$int_uris_total_rq{$uri}->{size} += ($size ne "-")?$size:0;
 		$int_uris_total_rq{$uri}->{rqtime} += $rqtime;

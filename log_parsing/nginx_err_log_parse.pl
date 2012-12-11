@@ -4,7 +4,6 @@
 #
 #	Written by [blueCat] <felix@enescu.name>
 #
-#	First cut the intereval of interest from file with cut_interval
 #
 
 use warnings;
@@ -86,8 +85,10 @@ my $re;
 #$re = qr!^(\d\d\d\d)/(\d\d)/(\d\d) (\d\d):(\d\d):(\d\d) \[error\] (\d+?)#(\d+?): \*(\d+?) open\(\) "(\S+?)" failed \(2: No such file or directory\), client: ([\d\.]+?), server: static.elefant.ro, request: "(\S+?) (\S+?) HTTP/(.*?)", host: "static.elefant.ro", referrer: "(\S+?)"$!;
 
 # Fara referrer
-$re = qr!^(\d\d\d\d)/(\d\d)/(\d\d) (\d\d):(\d\d):(\d\d) \[error\] (\d+?)#(\d+?): \*(\d+?) open\(\) "(\S+?)" failed \(2: No such file or directory\), client: ([\d\.]+?), server: static.elefant.ro, request: "(\S+?) (\S+?) HTTP/(.*?)", host: "static.elefant.ro"(.*)$!;
+#$re = qr!^(\d\d\d\d)/(\d\d)/(\d\d) (\d\d):(\d\d):(\d\d) \[error\] (\d+?)#(\d+?): \*(\d+?) open\(\) "(\S+?)" failed \(2: No such file or directory\), client: ([\d\.]+?), server: static.elefant.ro, request: "(\S+?) (\S+?) HTTP/(.*?)", host: "static.elefant.ro"(.*)$!;
 
+# Fara referrer si cu spatii in request
+$re = qr!^(\d\d\d\d)/(\d\d)/(\d\d) (\d\d):(\d\d):(\d\d) \[error\] (\d+?)#(\d+?): \*(\d+?) open\(\) "(.+?)" failed \(2: No such file or directory\), client: ([\d\.]+?), server: static.elefant.ro, request: "(\S+?) (\S+?) HTTP/(.*?)", host: "static.elefant.ro"(.*)$!;
 
 while( my $line = <$fin> )  {   
 	if ( $line =~ $re ) {
