@@ -3,7 +3,10 @@
 #
 # Check Jonar's web site
 #
-# Version 1.1
+# Version 1.2
+#
+# 2012-12-16 FLX f@qsol.ro
+#	- Modified to fully use parameters
 #
 # 2012-12-05 FLX f@qsol.ro
 #	- Added option to update baseline
@@ -20,12 +23,16 @@
 #
 #####################################################################
 
-working_dir='/root/felix'
 site='www.logictivity.com'
-sysadmin='felix.enescu@qwerty-sol.ro'
 
 ftpuser=felixsydney
 ftppassword=JonarAus2
+
+working_dir='/root/felix'
+sysadmin='felix.enescu@qwerty-sol.ro'
+
+log_file_prefix="check.result"
+md5_file_prefix="md5.baseline"
 
 #####################################################################
 
@@ -33,44 +40,46 @@ function PRINT_USAGE(){
   echo "This script check a site for modifications :
   -c check md5sum
   -u update
-  -t HOURS  maximal age in hours for the latest backup before a warning is issued
-  -T HOURS  maximal age in hours for the latest backup before a critical alert is issued
-  -s KBYTES maximal size in kilo bytes for the latest backup before a warning is issued
-  -S KBYTES maximal size in kilo bytes for the latest backup before a critical alert is issued
   -h    prints out this help
-You must at least specify a directory and a minimal size or a minimal age."
+You must at least specify check or update."
   exit 0
 }
 
-function EOJ(){
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Exiting ..." >> check.result.$now
-	cat check.result.$now | mailx -s "$site integrity check" $sysadmin
+function LOG(){
+	local msg="$1"
+	echo `date +"%Y-%m-%d %H:%M:%S"` $msg >> $site.$log_file_prefix.$now
+}
 
-	exit 0
+function EOJ(){
+	local exit_code=$1
+	LOG "Exiting"
+	cat $site.$log_file_prefix.$now | mailx -s "$site integrity check" $sysadmin
+
+	exit $exit_code
 }
 
 function UPDATE {
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Update started ..." >> check.result.$now
+	LOG "Update started ..."
 
-	mv $site.md5.baseline $site.md5.baseline.$now
-	find . -path './www.logictivity.com/*' -name "*.php"  -exec md5sum '{}' \; > $site.md5.baseline
+	mv $site.$md5_file_prefix $site.$md5_file_prefix.$now
+	find . -path "./$site/*" -name "*.php"  -exec md5sum '{}' \; > $site.$md5_file_prefix
 
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Update finished ..." >> check.result.$now
+	LOG "Update finished." 
 }
 
 function CHECK {
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Check started ..." >> check.result.$now
+	LOG "Check started ..."
 
-	mv $site $ite.$now
-	echo `date +"%Y-%m-%d %H:%M:%S"` 'Start wget ...' >> check.result.$now
+	mv $site $site.$now
+	LOG "  Start wget ..."
 	wget --ftp-user=$ftpuser --ftp-password=$ftppassword --mirror -A php ftp://$site/
-	echo `date +"%Y-%m-%d %H:%M:%S"` 'End wget ...' >> check.result.$now
+	LOG "  End wget."
 
-	echo `date +"%Y-%m-%d %H:%M:%S"` 'Start md5sum ...' >> check.result.$now
-	md5sum --check $site.md5.baseline |grep -v OK | tee -a check.result.$now
-	echo `date +"%Y-%m-%d %H:%M:%S"` 'End md5sum ...' >> check.result.$now
+	LOG "  Start md5sum ..."
+	md5sum --check $site.$md5_file_prefix |grep -v OK | tee -a $site.$log_file_prefix.$now
+	LOG "  End md5sum."
 	
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Check finished ..." >> check.result.$now
+	LOG "Check finished."
 
 }
 
@@ -83,10 +92,15 @@ function CHECK {
 
 now=`date +"%Y-%m-%d.%H-%M"`
 
+if ! which md5sum > /dev/null 2>&1; then
+	LOG "Unable to find md5sum. Aborting."
+	EOJ 1
+fi
+
 cd $working_dir/$site
 if [ "`pwd`" != "$working_dir/$site" ]; then
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Unable to cd to $working_dir/$site ..." >> check.result.$now
-	EOJ
+	LOG "Unable to cd to $working_dir/$site."
+	EOJ 2
 fi
 
 update=0
@@ -102,17 +116,18 @@ while true ; do
 done
 
 if [ "$check" = '1' ] ; then
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Checking ..." >> check.result.$now
+	LOG "Checking"
 	CHECK
-	EOJ
+	EOJ 0
 elif [ "$update" = '1' ] ; then
-	echo `date +"%Y-%m-%d %H:%M:%S"` "Updating ..." >> check.result.$now
+	LOG "Updating"
 	UPDATE
-	EOJ
+	EOJ 0
 else
-	echo `date +"%Y-%m-%d %H:%M:%S"` "No command specified ..." >> check.result.$now
-	EOJ
+	LOG "No command specified"
+	EOJ 3
 fi
 
-echo `date +"%Y-%m-%d %H:%M:%S"` "Finished ..." >> check.result.$now
-EOJ
+# Shoudn't reach here
+LOG "Unexpected finish."
+EOJ 15
