@@ -36,8 +36,8 @@ cfg_file='/root/.icheck.cfg'
 versions_to_keep=0
 
 working_dir='/root/icheck'
-#sysadmin='sysadmin@qwerty-sol.ro'
-sysadmin='f@qsol.ro'
+sysadmin='sysadmin@qwerty-sol.ro'
+#sysadmin='f@qsol.ro'
 
 log_file_prefix="check.result"
 md5_file_prefix="md5.baseline"
@@ -45,12 +45,13 @@ md5_file_prefix="md5.baseline"
 #####################################################################
 
 function PRINT_USAGE(){
-  echo "This script check a site for modifications :
+  echo "This script check a site for modifications:
   -s site to work on
   -f config file
   -k versions to keep (site files and check results)
   -c check md5sum
   -u update
+  -i init
   -h prints out this help
 You must at least specify check or update."
   exit 0

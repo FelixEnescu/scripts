@@ -2,6 +2,7 @@
 #
 
 # Script to install base components on servers
+# 
 #
 # Version 1.0
 #
@@ -22,7 +23,10 @@ working_dir='/root/qsol'
 
 #####################################################################
 
-packets='bind-utils wget'
+packets='bind-utils wget mc logrotate'
+other_packets='mysql-server'
+
+mysql=0
 
 WGET='wget --no-verbose '
 
@@ -40,7 +44,7 @@ if [ "$crt_dir" != "$working_dir" ] ; then
 	exit 127
 fi
 
-if which yum; then
+if which yum >/dev/null 2>&1; then
 	echo "Using yum."
 	install_cmd='yum install --assumeyes '
 	local_install_cmd='yum localinstall --nogpgcheck --assumeyes '
@@ -53,7 +57,10 @@ else
 	exit 127
 fi
 
-# Get our plugins
+#########################################
+#
+# Regular packages
+#
 for pkt in $packets; do
 	if $install_cmd $pkt; then
 		echo "$pkt ok."
@@ -68,6 +75,7 @@ done
 #
 # Special installs
 #
+
 if [ -x "/usr/sbin/crond" ]; then
 	echo "crond found."
 else
@@ -82,12 +90,12 @@ else
 	fi
 fi
 
-if which ntpdate ; then
+if which ntpdate >/dev/null 2>&1; then
 	echo "ntp found."
 else
 	$install_cmd ntp
 
-	if which ntpdate ; then
+	if which ntpdate >/dev/null 2>&1; then
 		echo "ntp installation ok."
 		ntpdate pool.ntp.org
 		echo "#!/bin/bash" > /etc/cron.daily/ntp
@@ -101,6 +109,45 @@ else
 	fi
 fi
 
+# Prepare nice Midnight Commander
+echo -e "\n\nexport LANG=en_US\n\n" >> /root/.bash_profile
+export LANG=en_US
+
+
+if [ "$mysql" = "1" ] ; then
+	$install_cmd mysql-server
+	
+	if [ -x "/usr/bin/mysqld_safe" ]; then
+		echo "MySQL installation ok."
+		chkconfig --levels 2345 mysqld on
+		service mysqld start
+		/usr/bin/mysql_secure_installation
+		echo "Create logrotate script."
+		cat > /etc/logrotate.d/mysql <<ENDOFMESSAGE
+		
+			/var/log/mysql/mysql_slow_queries.log
+			/var/log/mysql/mysqld.err
+			{
+				missingok
+				notifempty
+				sharedscripts
+				weekly
+				compress
+				rotate 10
+				postrotate
+					/usr/bin/mysqladmin flush-logs
+				endscript
+			}
+			
+			
+ENDOFMESSAGE
+		
+	else
+		echo "MySQL installation failed."
+		exit 127
+	fi
+/usr/bin/mysqld_safe
+fi
 
 exit 0
 
