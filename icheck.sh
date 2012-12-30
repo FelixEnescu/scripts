@@ -59,14 +59,14 @@ You must at least specify check or update."
 
 function LOG(){
 	local msg="$1"
-	echo `date +"%Y-%m-%d %H:%M:%S"` $msg >> $site.$log_file_prefix.$now
+	echo `date +"%Y-%m-%d %H:%M:%S"` $msg >> $site.$log_file_prefix
 }
 
 function EOJ(){
 	local exit_code=$1
 	LOG "Exiting"
 	
-	cat $site.$log_file_prefix.$now | mailx -s "$site integrity check" $sysadmin
+	cat $site.$log_file_prefix | mailx -s "$site integrity check" $sysadmin
 
 	exit $exit_code
 }
@@ -110,7 +110,7 @@ function CHECK {
 	LOG "  End wget."
 
 	LOG "  Start md5sum ..."
-	md5sum --check $site.$md5_file_prefix |grep -v OK | tee -a $site.$log_file_prefix.$now
+	md5sum --check $site.$md5_file_prefix |grep -v OK | tee -a $site.$log_file_prefix
 	LOG "  End md5sum."
 	
 	LOG "Check finished."
@@ -171,6 +171,8 @@ if [ "`pwd`" != "$working_dir/$site" ]; then
 	LOG "Unable to cd to $working_dir/$site."
 	EOJ 2
 fi
+
+mv $site.$log_file_prefix $site.$log_file_prefix.$now
 
 tmp=$(grep $site $cfg_file)
 if [ -n "$tmp" ]; then
