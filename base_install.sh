@@ -46,7 +46,7 @@ fi
 
 if which yum >/dev/null 2>&1; then
 	echo "Using yum."
-	install_cmd='yum install --assumeyes '
+	install_cmd='yum install --assumeyes'
 	local_install_cmd='yum localinstall --nogpgcheck --assumeyes '
 elif which apt-get; then
 	echo "Using apt-get. Debian not really tested - use on your own risk."
@@ -110,8 +110,11 @@ else
 fi
 
 # Prepare nice Midnight Commander
-echo -e "\n\nexport LANG=en_US\n\n" >> /root/.bash_profile
-export LANG=en_US
+profile='/root/.bash_profile'
+for_mc=$( grep "export LANG=en_US" $profile )
+if [ "$for_mc" != "export LANG=en_US" ] ; then
+	echo -e "\n\nexport LANG=en_US\n\n" >> $profile
+fi
 
 
 if [ "$mysql" = "1" ] ; then
