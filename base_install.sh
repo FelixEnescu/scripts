@@ -3,8 +3,13 @@
 
 # Script to install base components on servers
 # 
+# Requires:
+#	qsol_keys_set
 #
-# Version 1.0
+# Version 1.1
+#
+# 2013-01-29 FLX f@qsol.ro
+#	- Redirected ntpdate to /dev/null
 #
 # 2012-11-12 FLX f@qsol.ro
 #	- Started
@@ -99,7 +104,7 @@ else
 		echo "ntp installation ok."
 		ntpdate pool.ntp.org
 		echo "#!/bin/bash" > /etc/cron.daily/ntp
-		echo "/usr/sbin/ntpdate pool.ntp.org" >> /etc/cron.daily/ntp
+		echo "/usr/sbin/ntpdate pool.ntp.org >/dev/null" >> /etc/cron.daily/ntp
 		chmod +x /etc/cron.daily/ntp
 		/etc/cron.daily/ntp
 		service crond restart
@@ -108,14 +113,6 @@ else
 		exit 127
 	fi
 fi
-
-# Prepare nice Midnight Commander
-profile='/root/.bash_profile'
-for_mc=$( grep "export LANG=en_US" $profile )
-if [ "$for_mc" != "export LANG=en_US" ] ; then
-	echo -e "\n\nexport LANG=en_US\n\n" >> $profile
-fi
-
 
 if [ "$mysql" = "1" ] ; then
 	$install_cmd mysql-server
