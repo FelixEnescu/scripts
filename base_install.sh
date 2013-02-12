@@ -6,7 +6,10 @@
 # Requires:
 #	qsol_keys_set
 #
-# Version 1.1
+# Version 1.2
+#
+# 2013-01-31 FLX f@qsol.ro
+#	- Added set timezone to Europe Bucharest
 #
 # 2013-01-29 FLX f@qsol.ro
 #	- Redirected ntpdate to /dev/null
@@ -62,14 +65,22 @@ else
 	exit 127
 fi
 
-#########################################
+#####################################################################
 #
-# Regular packages
+#	Set Timezone
 #
+#####################################################################
+mv /etc/localtime /etc/localtime.bak
+ln -s /usr/share/zoneinfo/Europe/Bucharest /etc/localtime
+
+#####################################################################
+#
+#	Install Regular packages
+#
+#####################################################################
 for pkt in $packets; do
 	if $install_cmd $pkt; then
 		echo "$pkt ok."
-
 	else 
 		echo "$pkt failed."
 		exit 127
@@ -113,6 +124,8 @@ else
 		exit 127
 	fi
 fi
+
+
 
 if [ "$mysql" = "1" ] ; then
 	$install_cmd mysql-server
