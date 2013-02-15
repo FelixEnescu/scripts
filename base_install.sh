@@ -6,7 +6,10 @@
 # Requires:
 #	qsol_keys_set
 #
-# Version 1.2
+# Version 1.2.1
+#
+# 2013-01-31 FLX f@qsol.ro
+#	- Added sysstat and atop
 #
 # 2013-01-31 FLX f@qsol.ro
 #	- Added set timezone to Europe Bucharest
@@ -31,7 +34,7 @@ working_dir='/root/qsol'
 
 #####################################################################
 
-packets='bind-utils wget mc logrotate'
+packets='bind-utils wget mc logrotate atop sysstat'
 other_packets='mysql-server'
 
 mysql=0
