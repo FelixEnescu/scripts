@@ -75,7 +75,8 @@ if ( ! defined  $out_file ) {
 
 my $err_file = $out_file . ".err";
 
-my $lines_to_process = 20000;
+my $lines_to_process = 1287;
+my $early_exit = 0;
 
 if ( ! defined $report_interval ) {
 	$report_interval = 20000;
@@ -128,13 +129,18 @@ if ( defined $apache ) {
 	# Default is apache ele_ext
 	#89.238.194.86 - [28/Oct/2012:03:27:09 +0300] "GET /library/elefant_white/js/jquery.jplayer/themes/blue.monday/jplayer.blue.monday.css HTTP/1.0" 200 12940 2473 - 0 "http://www.elefant.ro/" "Wget/1.12 (linux-gnu)"
 	$re = qr!^([\d\.]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d*?) (\d*?) (\d*?) ([X+-]*?) (\d*?) "(.*?)" "(.*?)"$!;
-	$duration_factor = 1000;
+	
+	# Consider Apache log format uses %T
+	$duration_factor = 1;
 	
 } elsif ( defined $nginx ) {
 	# nginx ele_ext
 	#217.212.230.11 - [10/Nov/2012:03:23:17 +0200] "GET /images/79/198079/filme-de-colectie-anii-60_1_taburi.jpg HTTP/1.1" 200 7662 0.101 . - "http://www.elefant.ro/" "Opera/9.80 (Windows NT 5.1) Presto/2.12.388 Version/12.10"
+	#65.55.52.92 - [19/Feb/2013:03:12:15 +0200] "GET /carti/autori/don-stewart-29154.html?mode HTTP/1.1" 200 24552 0.159 . - "-" "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)" -
+	#86.127.129.232 - [19/Feb/2013:03:12:15 +0200] "GET /?ajax=cos_flotant HTTP/1.1" 200 691 0.632 . - "http://www.elefant.ro/cauta.html?cat=&s_query=duplo&pn=2" "Mozilla/5.0 (Windows NT 6.0; rv:18.0) Gecko/20100101 Firefox/18.0" -
 
-	$re = qr!^([\d\.]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d+?) (\d+?) ([\d\.]+?) ([\.p]) (-) "(.*?)" "(.*?)" "(.*?)$!;
+	
+	$re = qr!^([\d\.]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d+?) (\d+?) ([\d\.]+?) ([\.p]) (-) "(.*?)" "(.*?)" (.*?)$!;
 	$duration_factor = 1;
 } elsif ( defined $combined ) {
 	$re = qr!^([\d\.]+?) ([\w-]+?) ([\w-]+?) \[(\d\d)/(\w\w\w)/(\d\d\d\d):(\d\d):(\d\d):(\d\d) \+0\d00\] "(\w+?) (\S+?) HTTP/(.*?)" (\d*?) ([\d-]*?) "(.*?)" "(.*?)"$!;
@@ -208,7 +214,7 @@ while( my $line = <$fin> )  {
 	if ( not $. % $report_interval ) {
 		printf "Line %15s, $month $day $hour:$min\n", commify($.); 
 	} 
-   #last if $. == $lines_to_process;
+   last if $early_exit && $. == $lines_to_process;
 }
 
 my $tlines = $.;
@@ -226,7 +232,7 @@ close $fin;
 #
 my $total_mb = $total_size/1024/1024;
 my $total_gb = $total_mb/1024;
-my $total_time_sec = $total_time/$duration_factor/1000;
+my $total_time_sec = $total_time/$duration_factor;
 my $total_avg_time = $total_time/$total_rq/$duration_factor;
 
 ###############################################################################
@@ -304,11 +310,10 @@ sub print_report_by_rqtime {
 	
 	print STDERR "Writting " . $out_file . "-$categ-$file_tail ... ";
 	open ($fout, ">:raw", $out_file . "-$categ-$file_tail") or die "Could not open $out_file $categ-$file_tail: $!";
-	print $fout "$file_tail, Name, Requests, Size, SizeMB, SizeGB, RqTime, RqTimeSec, AvgRqTime\n";
+	print $fout "$file_tail, Name, Requests, Size, SizeMB, SizeGB, RqTime, AvgRqTime\n";
 	print $fout "Total, -, " . $total_rq . ", " . $total_size;
 	printf $fout ", %.2f", $total_mb;
 	printf $fout ", %.2f", $total_gb;
-	print $fout ", " . $total_time;
 	printf $fout ", %.2f", $total_time_sec;
 	printf $fout ", %.2f", $total_avg_time;
 	print $fout ", -\n";
@@ -330,7 +335,6 @@ sub print_report_by_rqtime {
 		printf $fout ", %.2f", $sz;
 		
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $duration_factor ;
-		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $duration_factor / 1000;
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $hash_ref->{$crt_key}->{rqs} / $duration_factor;
 		
 		if ( $file_tail eq "IP" ) {
@@ -356,11 +360,10 @@ sub print_report_by_rq {
 	
 	print STDERR "Writting " . $out_file . "-$categ-$file_tail ... ";
 	open ($fout, ">:raw", $out_file . "-$categ-$file_tail") or die "Could not open $out_file $categ-$file_tail: $!";
-	print $fout "$file_tail, Name, Requests, Size, SizeMB, SizeGB, RqTime, RqTimeSec, AvgRqTime\n";
+	print $fout "$file_tail, Name, Requests, Size, SizeMB, SizeGB, RqTime, AvgRqTime\n";
 	print $fout "Total, -, " . $total_rq . ", " . $total_size;
 	printf $fout ", %.2f", $total_mb;
 	printf $fout ", %.2f", $total_gb;
-	print $fout ", " . $total_time;
 	printf $fout ", %.2f", $total_time_sec;
 	printf $fout ", %.2f", $total_avg_time;
 	print $fout ", -\n";
@@ -382,7 +385,6 @@ sub print_report_by_rq {
 		printf $fout ", %.2f", $sz;
 		
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $duration_factor ;
-		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $duration_factor / 1000;
 		printf $fout ", %.2f", $hash_ref->{$crt_key}->{rqtime} / $hash_ref->{$crt_key}->{rqs} / $duration_factor;
 		
 		if ( $file_tail eq "IP" ) {
