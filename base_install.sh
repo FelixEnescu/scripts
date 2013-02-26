@@ -6,13 +6,16 @@
 # Requires:
 #	qsol_keys_set
 #
-# Version 1.2.1
+# Version 1.2.2
+#
+# 2013-02-20 FLX f@qsol.ro
+#	- Removed redirect ntpdate to /dev/null, and commented atop
 #
 # 2013-01-31 FLX f@qsol.ro
 #	- Added sysstat and atop
 #
 # 2013-01-31 FLX f@qsol.ro
-#	- Added set timezone to Europe Bucharest
+#	- Added set timezone to Europe Bucharert
 #
 # 2013-01-29 FLX f@qsol.ro
 #	- Redirected ntpdate to /dev/null
@@ -31,10 +34,11 @@
 
 working_dir='/root/qsol'
 
-
 #####################################################################
 
-packets='bind-utils wget mc logrotate atop sysstat'
+packets='bind-utils wget mc logrotate sysstat'
+all_packets='bind-utils wget mc logrotate atop sysstat'
+
 other_packets='mysql-server'
 
 mysql=0
@@ -118,7 +122,8 @@ else
 		echo "ntp installation ok."
 		ntpdate pool.ntp.org
 		echo "#!/bin/bash" > /etc/cron.daily/ntp
-		echo "/usr/sbin/ntpdate pool.ntp.org >/dev/null" >> /etc/cron.daily/ntp
+#		echo "/usr/sbin/ntpdate pool.ntp.org >/dev/null" >> /etc/cron.daily/ntp
+		echo "/usr/sbin/ntpdate pool.ntp.org" >> /etc/cron.daily/ntp
 		chmod +x /etc/cron.daily/ntp
 		/etc/cron.daily/ntp
 		service crond restart
